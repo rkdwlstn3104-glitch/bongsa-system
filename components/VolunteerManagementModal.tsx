@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Volunteer, Gender } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import PlusIcon from './icons/PlusIcon';
@@ -21,6 +21,11 @@ const VolunteerManagementModal: React.FC<VolunteerManagementModalProps> = ({
   // This state is the logical inverse of `canDoPublicWitnessing`.
   // `true` means the volunteer can ONLY do door-to-door.
   const [isOnlyDoorToDoor, setIsOnlyDoorToDoor] = useState(false);
+
+  // 전도인 목록을 이름 기준 오름차순(가나다 순)으로 정렬
+  const sortedVolunteers = useMemo(() => {
+    return [...volunteers].sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'));
+  }, [volunteers]);
 
   if (!isOpen) return null;
 
@@ -108,9 +113,9 @@ const VolunteerManagementModal: React.FC<VolunteerManagementModalProps> = ({
             </div>
           </form>
 
-          <h4 className="font-semibold text-lg mb-3">전도인 목록</h4>
+          <h4 className="font-semibold text-lg mb-3">전도인 목록 ({sortedVolunteers.length}명)</h4>
           <ul className="space-y-2">
-            {volunteers.map(v => (
+            {sortedVolunteers.map(v => (
               <li key={v.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
                 <div className="flex items-center gap-3">
                   <span className={`w-12 text-center text-sm font-bold rounded-full px-2 py-1 ${v.gender === '자매' ? 'bg-pink-100 text-pink-800' : 'bg-blue-100 text-blue-800'}`}>
