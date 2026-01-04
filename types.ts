@@ -35,9 +35,11 @@ export interface ServiceInstance extends ServiceSchedule {
   date: string; // YYYY-MM-DD
   applicants: Volunteer[];
   comments: Comment[];
+  assignments?: Record<string, Volunteer[]>; // Spot assignments: { '스팟A-1조': [v1, v2], ... }
+  pairs?: Volunteer[][]; // 조 편성: [[v1, v2], [v3, v4, v5], ...]
 }
 
-export type ServiceFormData = Omit<ServiceInstance, 'id' | 'date' | 'applicants' | 'dayOfWeek' | 'comments'>;
+export type ServiceFormData = Omit<ServiceInstance, 'id' | 'date' | 'applicants' | 'dayOfWeek' | 'comments' | 'assignments' | 'pairs'>;
 
 export enum UserRole {
   Leader = '봉사인도자',

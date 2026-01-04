@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { ServiceInstance, Volunteer } from '../types';
 import CloseIcon from './icons/CloseIcon';
 
@@ -7,19 +6,34 @@ interface PairingModalProps {
   isOpen: boolean;
   onClose: () => void;
   service: ServiceInstance | null;
+  onUpdateService: (updatedService: ServiceInstance) => void;
 }
 
-const PairingModal: React.FC<PairingModalProps> = ({ isOpen, onClose, service }) => {
+const PairingModal: React.FC<PairingModalProps> = ({ isOpen, onClose, service, onUpdateService }) => {
   const [unpairedVolunteers, setUnpairedVolunteers] = useState<Volunteer[]>([]);
   const [groups, setGroups] = useState<Volunteer[][]>([]);
   const [draggedVolunteer, setDraggedVolunteer] = useState<Volunteer | null>(null);
+  
+  const initializedServiceId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (service) {
-      setUnpairedVolunteers([...service.applicants].sort((a,b) => a.name.localeCompare(b.name)));
-      setGroups([]); // Reset groups when service changes or modal opens
+    if (isOpen && service) {
+      if (initializedServiceId.current !== service.id) {
+        const savedPairs = service.pairs || [];
+        const assignedIds = new Set(savedPairs.flat().map(v => v.id));
+        
+        setGroups(savedPairs);
+        setUnpairedVolunteers(
+          [...service.applicants]
+            .filter(v => !assignedIds.has(v.id))
+            .sort((a, b) => a.name.localeCompare(b.name))
+        );
+        initializedServiceId.current = service.id;
+      }
+    } else if (!isOpen) {
+      initializedServiceId.current = null;
     }
-  }, [service]);
+  }, [service, isOpen]);
 
   const handleDragStart = (e: React.DragEvent, volunteer: Volunteer) => {
     setDraggedVolunteer(volunteer);
@@ -27,214 +41,206 @@ const PairingModal: React.FC<PairingModalProps> = ({ isOpen, onClose, service })
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // Necessary to allow dropping
+    e.preventDefault();
   };
 
   const handleDropOnUnpaired = (e: React.DragEvent, targetVolunteer: Volunteer) => {
     e.preventDefault();
-    if (!draggedVolunteer || draggedVolunteer.id === targetVolunteer.id) {
-      setDraggedVolunteer(null);
-      return;
+    if (!draggedVolunteer || draggedVolunteer.id === targetVolunteer.id) return;
+    
+    // 타겟이 이미 그룹에 속해있는지 확인
+    const targetGroupIdx = groups.findIndex(g => g.some(v => v.id === targetVolunteer.id));
+
+    if (targetGroupIdx > -1) {
+      // 타겟이 이미 조에 있다면 그 조에 합류 (최대 3인)
+      if (groups[targetGroupIdx].length < 3) {
+          handleDropOnGroup(e, targetGroupIdx);
+      } else {
+          alert("한 조에는 최대 3명까지만 편성할 수 있습니다.");
+      }
+    } else {
+      // 타겟이 미지정이라면 새로운 조 생성
+      setGroups(prev => [...prev, [draggedVolunteer, targetVolunteer]]);
+      setUnpairedVolunteers(prev => prev.filter(v => v.id !== draggedVolunteer.id && v.id !== targetVolunteer.id));
     }
-
-    const newGroup: Volunteer[] = [draggedVolunteer, targetVolunteer];
-    setGroups(prev => [...prev, newGroup]);
-
-    setUnpairedVolunteers(prev => prev.filter(v => v.id !== draggedVolunteer!.id && v.id !== targetVolunteer.id));
-
     setDraggedVolunteer(null);
   };
 
   const handleDropOnGroup = (e: React.DragEvent, targetGroupIndex: number) => {
     e.preventDefault();
     if (!draggedVolunteer) return;
-
-    const targetGroup = groups[targetGroupIndex];
-    if (targetGroup.length >= 3) {
-      setDraggedVolunteer(null);
+    
+    // 이미 해당 조에 있는지 확인
+    if (groups[targetGroupIndex].some(v => v.id === draggedVolunteer.id)) return;
+    
+    if (groups[targetGroupIndex].length >= 3) {
+      alert("한 조에는 최대 3명까지만 편성할 수 있습니다.");
       return;
     }
-    
-    if (unpairedVolunteers.find(v => v.id === draggedVolunteer.id)) {
-        const updatedGroup = [...targetGroup, draggedVolunteer];
-        setGroups(prev => prev.map((group, index) => index === targetGroupIndex ? updatedGroup : group));
-        
-        setUnpairedVolunteers(prev => prev.filter(v => v.id !== draggedVolunteer.id));
 
-        setDraggedVolunteer(null);
-    }
+    // 다른 조에서 이동해오는 경우 처리
+    const newGroups = groups.map((g, i) => {
+      let filtered = g.filter(v => v.id !== draggedVolunteer.id);
+      if (i === targetGroupIndex) return [...filtered, draggedVolunteer];
+      return filtered;
+    }).filter(g => g.length > 0);
+
+    setGroups(newGroups);
+    setUnpairedVolunteers(prev => prev.filter(v => v.id !== draggedVolunteer.id));
+    setDraggedVolunteer(null);
   };
-  
-  const handleDragEnd = () => {
-      setDraggedVolunteer(null);
+
+  const handleDropToUnpairedList = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!draggedVolunteer) return;
+
+    // 그룹에서 제거하여 미지정 목록으로 이동
+    const isAlreadyUnpaired = unpairedVolunteers.some(v => v.id === draggedVolunteer.id);
+    if (isAlreadyUnpaired) return;
+
+    setGroups(prev => prev.map(g => g.filter(v => v.id !== draggedVolunteer.id)).filter(g => g.length > 0));
+    setUnpairedVolunteers(prev => [...prev, draggedVolunteer].sort((a, b) => a.name.localeCompare(b.name)));
+    setDraggedVolunteer(null);
   };
 
   const handleUnpair = (groupIndex: number) => {
-    const groupToUnpair = groups[groupIndex];
-    setUnpairedVolunteers(prev => [...prev, ...groupToUnpair].sort((a, b) => a.name.localeCompare(b.name)));
-    setGroups(prev => prev.filter((_, index) => index !== groupIndex));
+    setUnpairedVolunteers(prev => [...prev, ...groups[groupIndex]].sort((a, b) => a.name.localeCompare(b.name)));
+    setGroups(prev => prev.filter((_, i) => i !== groupIndex));
   };
-  
+
+  const handleSave = () => {
+    if (!service) return;
+    onUpdateService({ ...service, pairs: groups });
+    onClose();
+  };
+
   const handleDownload = () => {
     if (!service) return;
+    const { date, time, type, location } = service;
+    const padCell = (text: string) => `"${text.padEnd(20)}"`;
 
-    const { date, time, type, location, comments } = service;
-
-    const formatVolunteerNameForCsv = (volunteer: Volunteer) => {
-        if (type === '전시대&호별' && !volunteer.canDoPublicWitnessing) {
-            return `${volunteer.name}(호)`;
-        }
-        return volunteer.name;
-    };
+    const header = `"봉사: ${date} ${time} (${location})"\n"종류: ${type}"\n\n${padCell("조")},${padCell("명단")}\n`;
+    const rows = groups.map((g, i) => `${padCell((i+1) + "조")},${padCell(g.map(v => v.name).join(' '))}`).join('\n');
+    const unpaired = unpairedVolunteers.length > 0 ? `\n${padCell("미지정")},${padCell(unpairedVolunteers.map(v => v.name).join(' '))}` : '';
     
-    const header = [
-      `"봉사 일시: ${date} ${time}"`,
-      `"봉사 종류: ${type}"`,
-      `"봉사 장소: ${location}"`,
-    ].join('\n');
-
-    const pairedContent = groups.map((group, index) => {
-        const groupNames = group.map(formatVolunteerNameForCsv).join('  ');
-        return [index + 1 + '조', `"${groupNames}"`].join(',');
-    }).join('\n');
-    
-    const unpaired = unpairedVolunteers;
-    const unpairedContent = unpaired.length > 0 ? 
-        '미지정,' + unpaired.map(v => `"${formatVolunteerNameForCsv(v)}"`).join(',') : '';
-
-    const sortedComments = [...comments].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    const commentsHeader = '작성자,내용,작성일시';
-    const commentsData = sortedComments.map(c => {
-        const author = `"${c.authorName}"`;
-        const text = `"${c.text.replace(/"/g, '""')}"`; // Escape double quotes
-        const createdAt = `"${new Date(c.createdAt).toLocaleString('ko-KR')}"`;
-        return [author, text, createdAt].join(',');
-    }).join('\n');
-
-    const commentsSection = comments.length > 0
-      ? [
-          '댓글',
-          commentsHeader,
-          commentsData,
-        ].join('\n')
-      : '';
-
-    const csvContent = [
-        header,
-        '',
-        '짝,봉사짝',
-        pairedContent,
-        '',
-        unpairedContent,
-        '',
-        commentsSection
-    ].filter(Boolean).join('\n');
-    
-    // BOM to support Korean characters in Excel
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const blob = new Blob(['\uFEFF' + header + rows + unpaired], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${date}_${type}_봉사조.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${date}_호별짝조직.csv`;
     link.click();
-    document.body.removeChild(link);
   };
 
   if (!isOpen || !service) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-        <header className="flex items-center justify-between p-4 border-b">
+    <div className="fixed inset-0 bg-black bg-opacity-75 z-[60] flex justify-center items-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+        <header className="p-5 border-b flex justify-between items-center bg-white">
           <div>
-            <h3 className="text-xl font-bold">짝 구성 및 명단 다운로드</h3>
-            <p className="text-sm text-gray-600">{service.date} {service.time} - {service.type}</p>
+            <h3 className="text-2xl font-black text-gray-900 tracking-tight">호별 짝 조직</h3>
+            <p className="text-base text-gray-500 font-bold">{service.date} {service.time} | {service.location}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200">
-            <CloseIcon className="h-6 w-6" />
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <CloseIcon className="h-8 w-8 text-gray-400"/>
           </button>
         </header>
 
-        <div className="p-6 flex-grow overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Unpaired Volunteers */}
-          <div className="bg-gray-50 p-4 rounded-lg md:col-span-2">
-            <h4 className="font-semibold mb-3 text-center border-b pb-2">미지정 전도인 ({unpairedVolunteers.length}명)</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+        <div className="flex-grow overflow-hidden flex flex-col lg:flex-row">
+          {/* 미지정 인원 목록 */}
+          <div 
+            className="w-full lg:w-80 bg-gray-50 border-r border-gray-200 flex flex-col"
+            onDragOver={handleDragOver}
+            onDrop={handleDropToUnpairedList}
+          >
+            <div className="p-4 bg-gray-200 border-b border-gray-300">
+                <h4 className="font-black text-sm text-gray-600 uppercase tracking-widest">미지정 인원 ({unpairedVolunteers.length})</h4>
+            </div>
+            <div className="flex-grow overflow-y-auto p-4 flex flex-wrap gap-2 content-start">
               {unpairedVolunteers.map(v => (
-                <div
-                  key={v.id}
-                  draggable
+                <div 
+                  key={v.id} 
+                  draggable 
                   onDragStart={(e) => handleDragStart(e, v)}
-                  onDragEnd={handleDragEnd}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDropOnUnpaired(e, v)}
-                  className={`p-2 rounded-md border text-center cursor-grab ${draggedVolunteer?.id === v.id ? 'opacity-50' : ''} ${
-                    v.gender === '형제' ? 'bg-blue-100 border-blue-200' : 'bg-pink-100 border-pink-200'
+                  className={`px-4 py-2 rounded-xl border-2 font-black cursor-grab active:scale-105 transition-all shadow-sm select-none hover:border-gray-400 ${
+                    v.gender === '자매' ? 'bg-pink-100 border-pink-200 text-pink-700' : 'bg-blue-100 border-blue-200 text-blue-700'
                   }`}
                 >
                   {v.name}
-                  {service.type === '전시대&호별' && !v.canDoPublicWitnessing && (
-                    <span className="ml-1 text-xs text-red-600 font-semibold">(호별만)</span>
-                  )}
                 </div>
               ))}
+              {unpairedVolunteers.length === 0 && (
+                <p className="text-center w-full py-10 text-gray-300 text-sm italic font-bold">모든 인원이 배정되었습니다.</p>
+              )}
             </div>
           </div>
 
-          {/* Paired */}
-          <div className="bg-green-50 p-4 rounded-lg md:col-span-1">
-            <h4 className="font-semibold mb-3 text-center border-b pb-2">결성된 짝 ({groups.length}조)</h4>
-            <div className="space-y-3">
-              {groups.map((group, index) => (
+          {/* 편성된 조 목록 */}
+          <div className="flex-grow p-6 bg-white overflow-y-auto">
+            <h4 className="font-black text-lg text-gray-400 mb-6 uppercase tracking-tighter">편성된 조 목록 ({groups.length})</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {groups.map((group, idx) => (
                 <div 
-                    key={index}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDropOnGroup(e, index)}
-                    className="bg-white p-3 rounded-lg shadow-sm border flex items-center justify-between"
+                  key={idx} 
+                  onDragOver={handleDragOver} 
+                  onDrop={(e) => handleDropOnGroup(e, idx)} 
+                  className="bg-gray-50 p-4 rounded-2xl border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-all flex flex-col gap-4 relative group"
                 >
-                    <div>
-                    <p className="font-bold">{index + 1}조</p>
-                    <p className="text-sm">
-                        {group.map((member, memberIndex) => {
-                            const isDoorOnly = service.type === '전시대&호별' && !member.canDoPublicWitnessing;
-                            return (
-                                <React.Fragment key={member.id}>
-                                    {member.name}
-                                    {isDoorOnly && <span className="text-xs text-red-600 font-semibold"> (호별만)</span>}
-                                    {memberIndex < group.length - 1 && ' & '}
-                                </React.Fragment>
-                            );
-                        })}
-                    </p>
-                    </div>
-                    <button onClick={() => handleUnpair(index)} className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600">
-                    해제
-                    </button>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-lg uppercase">{idx+1}조</span>
+                    <button onClick={() => handleUnpair(idx)} className="text-xs text-red-500 font-black hover:underline opacity-0 group-hover:opacity-100 transition-opacity">해제</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {group.map(v => (
+                      <div 
+                        key={v.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, v)}
+                        className={`px-4 py-3 rounded-xl font-black text-sm shadow-md cursor-grab active:cursor-grabbing hover:scale-105 transition-transform ${
+                          v.gender === '자매' ? 'bg-pink-100 text-pink-700 border border-pink-200' : 'bg-blue-100 text-blue-700 border border-blue-200'
+                        }`}
+                      >
+                        {v.name}
+                      </div>
+                    ))}
+                    {group.length < 3 && (
+                        <div className="w-full h-12 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-xs text-gray-300 font-bold italic">
+                            + 드래그하여 추가
+                        </div>
+                    )}
+                  </div>
                 </div>
               ))}
-              {unpairedVolunteers.length === 1 && (
-                 <div className="bg-white p-3 rounded-lg shadow-sm border text-center text-gray-600">
-                    <p>
-                        미지정: {unpairedVolunteers[0].name}
-                        {service.type === '전시대&호별' && !unpairedVolunteers[0].canDoPublicWitnessing && (
-                            <span className="ml-1 text-xs text-red-600 font-semibold">(호별만)</span>
-                        )}
-                    </p>
-                </div>
+              {groups.length === 0 && (
+                  <div className="col-span-full py-20 border-4 border-dashed border-gray-100 rounded-3xl flex flex-col items-center justify-center text-gray-300">
+                      <p className="text-xl font-black mb-2">아직 편성된 조가 없습니다.</p>
+                      <p className="font-bold">왼쪽 명단에서 전도인을 드래그하여 다른 전도인 위에 놓으세요!</p>
+                  </div>
               )}
             </div>
           </div>
         </div>
 
-        <footer className="p-4 border-t flex justify-end">
-          <button
-            onClick={handleDownload}
-            className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700"
+        <footer className="p-5 border-t-2 border-gray-100 bg-white flex justify-end gap-4">
+          <button 
+            onClick={handleDownload} 
+            className="px-8 py-3.5 bg-green-600 text-white font-black rounded-2xl hover:bg-green-700 transition-all shadow-lg text-lg"
           >
-            스프레드시트 다운로드
+            CSV 다운로드
+          </button>
+          <button 
+            onClick={onClose} 
+            className="px-8 py-3.5 bg-white border-2 border-gray-300 text-gray-500 font-black rounded-2xl hover:bg-gray-100 transition-all text-lg"
+          >
+            취소
+          </button>
+          <button 
+            onClick={handleSave} 
+            className="px-14 py-3.5 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 shadow-2xl transition-all text-lg active:scale-95"
+          >
+            저장
           </button>
         </footer>
       </div>

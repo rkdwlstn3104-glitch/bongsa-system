@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Volunteer, ServiceInstance, ServiceSchedule, ServiceFormData, Gender, Comment } from './types';
 import { UserRole } from './types';
 import Header from './components/Header';
@@ -24,7 +24,6 @@ import {
   deleteComment
 } from './api/googleSheet';
 
-// Helper function to format date to YYYY-MM-DD string, ignoring timezone
 const toYYYYMMDD = (date: Date): string => {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
@@ -40,11 +39,10 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<Volunteer | null>(null);
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false); // 배경 동기화 상태
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
 
-  // 데이터 로딩 로직을 함수화하여 재사용 가능하게 변경
   const loadData = useCallback(async (isBackground = false) => {
     try {
       if (!isBackground) setIsLoading(true);
@@ -75,23 +73,17 @@ export default function App() {
     }
   }, []);
 
-  // 초기 로드
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // 자동 동기화 (Polling): 20초마다 최신 데이터 확인
   useEffect(() => {
-    if (!currentUser) return; // 로그인 상태일 때만 작동
-
+    if (!currentUser) return;
     const interval = setInterval(() => {
-      // 사용자가 모달을 열어두거나 활발히 활동 중일 때도 배경에서 조용히 업데이트
       loadData(true);
-    }, 20000); // 20초 간격
-
+    }, 20000);
     return () => clearInterval(interval);
   }, [currentUser, loadData]);
-
 
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [isVolunteerModalOpen, setIsVolunteerModalOpen] = useState(false);
@@ -116,10 +108,8 @@ export default function App() {
     if (newPassword.length < 4) {
       throw new Error("새 비밀번호는 4자 이상이어야 합니다.");
     }
-    
     const originalPassword = leaderPassword;
     setLeaderPassword(newPassword);
-
     try {
       await updateLeaderPassword(newPassword);
       alert("비밀번호가 성공적으로 변경되었습니다.");
@@ -141,8 +131,6 @@ export default function App() {
     return serviceInstances.filter(instance => instance.date === dateString).sort((a,b) => a.time.localeCompare(b.time));
   }, [selectedDate, serviceInstances]);
 
-  // --- Data Mutation Handlers ---
-
   const handleAddVolunteer = async (name: string, gender: Gender, canDoPublicWitnessing: boolean) => {
     const tempId = `temp_${Date.now()}`;
     const newVolunteer: Volunteer = { id: tempId, name, gender, canDoPublicWitnessing };
@@ -151,9 +139,8 @@ export default function App() {
         const savedVolunteer = await addVolunteer({ name, gender, canDoPublicWitnessing });
         setVolunteers(prev => prev.map(v => v.id === tempId ? savedVolunteer : v));
     } catch (e) {
-        console.error("전도인 추가 실패:", e);
-        alert("전도인 추가에 실패했습니다.");
         setVolunteers(prev => prev.filter(v => v.id !== tempId));
+        alert("전도인 추가에 실패했습니다.");
     }
   };
 
@@ -167,9 +154,8 @@ export default function App() {
     try {
         await removeVolunteer(volunteerId);
     } catch(e) {
-        console.error("전도인 삭제 실패:", e);
-        alert("전도인 삭제에 실패했습니다.");
         setVolunteers(originalVolunteers);
+        alert("전도인 삭제에 실패했습니다.");
     }
   };
 
@@ -177,7 +163,6 @@ export default function App() {
     const isUpdate = !!scheduleToSave.id;
     const originalSchedules = [...serviceSchedule];
     const tempId = `temp_sched_${Date.now()}`;
-    
     if (isUpdate) {
         setServiceSchedule(prev => prev.map(s => s.id === scheduleToSave.id ? scheduleToSave : s));
     } else {
@@ -191,9 +176,8 @@ export default function App() {
             setServiceSchedule(prev => prev.map(s => s.id === tempId ? saved : s));
         }
     } catch (e) {
-        console.error("봉사 목록 저장 실패:", e);
-        alert("저장에 실패했습니다.");
         setServiceSchedule(originalSchedules);
+        alert("저장에 실패했습니다.");
     }
   };
 
@@ -203,9 +187,8 @@ export default function App() {
     try {
         await removeSchedule(scheduleId);
     } catch (e) {
-        console.error("봉사 목록 삭제 실패:", e);
-        alert("삭제에 실패했습니다.");
         setServiceSchedule(originalSchedules);
+        alert("삭제에 실패했습니다.");
     }
   };
   
@@ -216,9 +199,8 @@ export default function App() {
       const savedInstance = await saveServiceInstance(newInstance);
       setServiceInstances(prev => prev.map(s => (s.id === newInstance.id ? savedInstance : s)));
     } catch (e) {
-      console.error("봉사 생성 실패:", e);
-      alert("봉사 생성에 실패했습니다.");
       setServiceInstances(originalInstances);
+      alert("봉사 생성에 실패했습니다.");
     }
   };
   
@@ -228,9 +210,8 @@ export default function App() {
     try {
         await saveServiceInstance(updatedInstance);
     } catch (e) {
-        console.error("봉사 업데이트 실패:", e);
-        alert("업데이트에 실패했습니다.");
         setServiceInstances(originalInstances);
+        alert("업데이트에 실패했습니다.");
     }
   };
 
@@ -240,57 +221,42 @@ export default function App() {
     try {
         await deleteServiceInstance(serviceId);
     } catch (e) {
-        console.error("봉사 삭제 실패:", e);
-        alert("봉사 삭제에 실패했습니다.");
         setServiceInstances(originalInstances);
+        alert("봉사 삭제에 실패했습니다.");
     }
   };
 
   const handleApply = async (serviceId: string) => {
     if (!currentUser) return;
-    const instance = serviceInstances.find(s => s.id === serviceId);
-    if (!instance) return;
-
-    // Optimistic UI update
     const originalInstances = [...serviceInstances];
     setServiceInstances(prev => prev.map(s => 
       s.id === serviceId ? { ...s, applicants: [...s.applicants, currentUser] } : s
     ));
-
     try {
       const newApplicants = await toggleApplication(serviceId, currentUser, true);
       setServiceInstances(prev => prev.map(s => 
         s.id === serviceId ? { ...s, applicants: newApplicants } : s
       ));
-      setLastSyncTime(new Date());
     } catch (e) {
-      console.error("신청 실패:", e);
-      alert("신청 중 오류가 발생했습니다. 다시 시도해주세요.");
       setServiceInstances(originalInstances);
+      alert("신청 중 오류가 발생했습니다.");
     }
   };
 
   const handleCancel = async (serviceId: string) => {
     if (!currentUser) return;
-    const instance = serviceInstances.find(s => s.id === serviceId);
-    if (!instance) return;
-
-    // Optimistic UI update
     const originalInstances = [...serviceInstances];
     setServiceInstances(prev => prev.map(s => 
       s.id === serviceId ? { ...s, applicants: s.applicants.filter(v => v.id !== currentUser.id) } : s
     ));
-
     try {
       const newApplicants = await toggleApplication(serviceId, currentUser, false);
       setServiceInstances(prev => prev.map(s => 
         s.id === serviceId ? { ...s, applicants: newApplicants } : s
       ));
-      setLastSyncTime(new Date());
     } catch (e) {
-      console.error("취소 실패:", e);
-      alert("취소 중 오류가 발생했습니다.");
       setServiceInstances(originalInstances);
+      alert("취소 중 오류가 발생했습니다.");
     }
   };
   
@@ -303,19 +269,16 @@ export default function App() {
       text,
       createdAt: new Date().toISOString(),
     };
-
     const originalInstances = [...serviceInstances];
     setServiceInstances(prev => prev.map(s => 
       s.id === serviceId ? { ...s, comments: [...s.comments, newComment] } : s
     ));
-
     try {
       const newComments = await addComment(serviceId, newComment);
       setServiceInstances(prev => prev.map(s => 
         s.id === serviceId ? { ...s, comments: newComments } : s
       ));
     } catch (e) {
-      console.error("댓글 저장 실패:", e);
       setServiceInstances(originalInstances);
     }
   };
@@ -328,14 +291,12 @@ export default function App() {
         comments: s.comments.map(c => c.id === commentId ? { ...c, text: newText } : c) 
       } : s
     ));
-
     try {
       const newComments = await updateComment(serviceId, commentId, newText);
       setServiceInstances(prev => prev.map(s => 
         s.id === serviceId ? { ...s, comments: newComments } : s
       ));
     } catch (e) {
-      console.error("댓글 수정 실패:", e);
       setServiceInstances(originalInstances);
     }
   };
@@ -345,14 +306,12 @@ export default function App() {
     setServiceInstances(prev => prev.map(s => 
       s.id === serviceId ? { ...s, comments: s.comments.filter(c => c.id !== commentId) } : s
     ));
-
     try {
       const newComments = await deleteComment(serviceId, commentId);
       setServiceInstances(prev => prev.map(s => 
         s.id === serviceId ? { ...s, comments: newComments } : s
       ));
     } catch (e) {
-      console.error("댓글 삭제 실패:", e);
       setServiceInstances(originalInstances);
     }
   };
@@ -365,7 +324,6 @@ export default function App() {
       alert(`하루에 최대 3개의 봉사만 생성할 수 있습니다.`);
       return;
     }
-
     const newInstances: ServiceInstance[] = schedulesToCreate.map((schedule, i) => ({
       ...schedule,
       id: `temp_si_${Date.now()}_${i}`,
@@ -373,10 +331,9 @@ export default function App() {
       dayOfWeek: selectedDate.getDay(),
       applicants: [],
       comments: [],
+      assignments: {},
     }));
-
     setServiceInstances(prev => [...prev, ...newInstances]);
-
     Promise.all(newInstances.map(inst => saveServiceInstance(inst)))
       .then(savedInstances => {
         const savedMap = new Map<string, ServiceInstance>();
@@ -386,7 +343,6 @@ export default function App() {
         setServiceInstances(prev => prev.map(inst => savedMap.get(inst.id) || inst));
       })
       .catch(e => {
-        console.error("봉사 생성 실패:", e);
         const tempIds = new Set(newInstances.map(i => i.id));
         setServiceInstances(prev => prev.filter(i => !tempIds.has(i.id)));
       });
@@ -406,6 +362,7 @@ export default function App() {
         dayOfWeek: selectedDate.getDay(),
         applicants: [],
         comments: [],
+        assignments: {},
     };
     handleAddServiceInstance(newService);
   };
@@ -416,7 +373,6 @@ export default function App() {
             <div className="text-center">
                 <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-xl font-semibold text-blue-600">데이터를 불러오는 중...</p>
-                <p className="text-gray-500 mt-2">잠시만 기다려주세요.</p>
             </div>
         </div>
     );
@@ -428,7 +384,7 @@ export default function App() {
             <div className="text-center p-8 bg-white rounded-lg shadow-md border border-red-200">
                 <h2 className="text-2xl font-bold text-red-600">오류 발생</h2>
                 <p className="text-gray-700 mt-4">{error}</p>
-                <button onClick={() => loadData()} className="mt-6 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">다시 시도</button>
+                <button onClick={() => loadData()} className="mt-6 px-4 py-2 bg-red-600 text-white rounded-md">다시 시도</button>
             </div>
         </div>
      );
@@ -449,7 +405,6 @@ export default function App() {
         onManagePassword={() => setIsPasswordModalOpen(true)}
       />
       
-      {/* 동기화 상태 표시기 */}
       <div className="bg-white border-b px-4 py-1 flex justify-end items-center space-x-2 text-[10px] text-gray-400">
           {isSyncing ? (
               <span className="flex items-center">
@@ -457,7 +412,7 @@ export default function App() {
                   동기화 중...
               </span>
           ) : (
-              <span>최근 동기화: {lastSyncTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+              <span>최근 동기화: {lastSyncTime.toLocaleTimeString('ko-KR')}</span>
           )}
           <button onClick={() => loadData(true)} className="hover:text-blue-500 underline">지금 동기화</button>
       </div>
