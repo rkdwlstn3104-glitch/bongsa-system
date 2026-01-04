@@ -75,7 +75,7 @@ const Login: React.FC<LoginProps> = ({ volunteers, onLogin, leaderPassword }) =>
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center p-4">
       <div className="max-w-md w-full mx-auto">
         <h1 className="text-3xl font-bold text-center text-blue-600 mb-2 text-balance">봉사 신청 관리</h1>
-        <p className="text-center text-gray-600 mb-8">성함을 입력하여 로그인하세요</p>
+        <p className="text-center text-gray-600 mb-8">이름을 입력하여 로그인하세요</p>
         
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           <div className="flex border-b mb-6">
@@ -98,14 +98,14 @@ const Login: React.FC<LoginProps> = ({ volunteers, onLogin, leaderPassword }) =>
           <form onSubmit={handleSubmit} className="space-y-6">
             {loginMode === 'volunteer' ? (
               <div className="animate-fade-in">
-                <label htmlFor="volunteer-name-input" className="block text-sm font-medium text-gray-700 mb-2">성함</label>
+                <label htmlFor="volunteer-name-input" className="block text-sm font-medium text-gray-700 mb-2">이름</label>
                 <input
                   id="volunteer-name-input"
                   type="text"
                   value={volunteerName}
                   onChange={handleNameChange}
                   className="w-full px-4 py-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                  placeholder="등록된 성함을 입력하세요"
+                  placeholder="등록된 이름을 입력하세요"
                   autoComplete="name"
                   required
                 />
