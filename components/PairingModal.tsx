@@ -110,10 +110,21 @@ const PairingModal: React.FC<PairingModalProps> = ({ isOpen, onClose, service, o
   const handleDownload = () => {
     if (!service) return;
     const { date, time, type, location } = service;
-    const padCell = (text: string) => `"${text.padEnd(20)}"`;
-    const header = `"봉사: ${date} ${time} (${location})"\n"종류: ${type}"\n\n${padCell("조")},${padCell("명단")}\n`;
-    const rows = groups.map((g, i) => `${padCell((i+1) + "조")},${padCell(g.map(v => v.name).join(' '))}`).join('\n');
-    const unpaired = unpairedVolunteers.length > 0 ? `\n${padCell("미지정")},${padCell(unpairedVolunteers.map(v => v.name).join(' '))}` : '';
+    const quoteCell = (text: string) => `"${text.trim()}"`;
+    const header = `"봉사: ${date} ${time} (${location})"\n"종류: ${type}"\n\n${quoteCell("조")},${quoteCell("명단")}\n`;
+    const rows = groups.map((g, i) => {
+        const names = g.map(v => {
+            const isOnlyDoorToDoor = !v.canDoPublicWitnessing && (type === '호별' || type === '전시대&호별');
+            return v.name + (isOnlyDoorToDoor ? '(호)' : '');
+        }).join(' ');
+        return `${quoteCell((i+1) + "조")},${quoteCell(names)}`;
+    }).join('\n');
+    
+    const unpaired = unpairedVolunteers.length > 0 ? `\n${quoteCell("미지정")},${quoteCell(unpairedVolunteers.map(v => {
+        const isOnlyDoorToDoor = !v.canDoPublicWitnessing && (type === '호별' || type === '전시대&호별');
+        return v.name + (isOnlyDoorToDoor ? '(호)' : '');
+    }).join(' '))}` : '';
+    
     const blob = new Blob(['\uFEFF' + header + rows + unpaired], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -148,20 +159,23 @@ const PairingModal: React.FC<PairingModalProps> = ({ isOpen, onClose, service, o
                 <h4 className="font-black text-xs sm:text-sm text-gray-600 uppercase tracking-widest">미지정 인원 ({unpairedVolunteers.length})</h4>
             </div>
             <div className="flex-grow overflow-y-auto p-2 sm:p-4 flex flex-wrap gap-2 content-start">
-              {unpairedVolunteers.map(v => (
-                <div 
-                  key={v.id} 
-                  draggable 
-                  onDragStart={(e) => handleDragStart(e, v)}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDropOnUnpaired(e, v)}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl border-2 font-black cursor-grab active:scale-105 transition-all shadow-sm select-none text-sm sm:text-base ${
-                    v.gender === '자매' ? 'bg-pink-100 border-pink-200 text-pink-700' : 'bg-blue-100 border-blue-200 text-blue-700'
-                  }`}
-                >
-                  {v.name}
-                </div>
-              ))}
+              {unpairedVolunteers.map(v => {
+                const isOnlyDoorToDoor = !v.canDoPublicWitnessing && (service.type === '호별' || service.type === '전시대&호별');
+                return (
+                  <div 
+                    key={v.id} 
+                    draggable 
+                    onDragStart={(e) => handleDragStart(e, v)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDropOnUnpaired(e, v)}
+                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl border-2 font-black cursor-grab active:scale-105 transition-all shadow-sm select-none text-sm sm:text-base ${
+                      v.gender === '자매' ? 'bg-pink-100 border-pink-200 text-pink-700' : 'bg-blue-100 border-blue-200 text-blue-700'
+                    }`}
+                  >
+                    {v.name}{isOnlyDoorToDoor ? '(호)' : ''}
+                  </div>
+                );
+              })}
               {unpairedVolunteers.length === 0 && (
                 <p className="text-center w-full py-6 text-gray-300 text-xs italic font-bold">배정 완료</p>
               )}
@@ -184,18 +198,21 @@ const PairingModal: React.FC<PairingModalProps> = ({ isOpen, onClose, service, o
                     <button onClick={() => handleUnpair(idx)} className="text-[10px] sm:text-xs text-red-500 font-black hover:underline opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">해제</button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
-                    {group.map(v => (
-                      <div 
-                        key={v.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, v)}
-                        className={`px-3 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-xl font-black text-xs sm:text-sm shadow-sm cursor-grab active:cursor-grabbing hover:scale-105 transition-transform ${
-                          v.gender === '자매' ? 'bg-pink-100 text-pink-700 border border-pink-200' : 'bg-blue-100 text-blue-700 border border-blue-200'
-                        }`}
-                      >
-                        {v.name}
-                      </div>
-                    ))}
+                    {group.map(v => {
+                      const isOnlyDoorToDoor = !v.canDoPublicWitnessing && (service.type === '호별' || service.type === '전시대&호별');
+                      return (
+                        <div 
+                          key={v.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, v)}
+                          className={`px-3 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-xl font-black text-xs sm:text-sm shadow-sm cursor-grab active:cursor-grabbing hover:scale-105 transition-transform ${
+                            v.gender === '자매' ? 'bg-pink-100 text-pink-700 border border-pink-200' : 'bg-blue-100 text-blue-700 border border-blue-200'
+                          }`}
+                        >
+                          {v.name}{isOnlyDoorToDoor ? '(호)' : ''}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}

@@ -160,13 +160,16 @@ const VolunteerServiceCard: React.FC<{
                     신청자 명단 ({service.applicants.length})
                 </h5>
                 <div className="flex flex-wrap gap-1.5">
-                    {service.applicants.map(v => (
-                        <span key={v.id} className={`px-2 py-1 text-xs font-medium rounded-lg border ${
-                            v.gender === '자매' ? 'bg-pink-50 border-pink-100 text-pink-700' : 'bg-blue-50 border-blue-100 text-blue-700'
-                        }`}>
-                            {v.name}
-                        </span>
-                    ))}
+                    {service.applicants.map(v => {
+                        const isOnlyDoorToDoor = !v.canDoPublicWitnessing && (service.type === '호별' || service.type === '전시대&호별');
+                        return (
+                            <span key={v.id} className={`px-2 py-1 text-xs font-medium rounded-lg border ${
+                                v.gender === '자매' ? 'bg-pink-50 border-pink-100 text-pink-700' : 'bg-blue-50 border-blue-100 text-blue-700'
+                            }`}>
+                                {v.name}{isOnlyDoorToDoor ? '(호)' : ''}
+                            </span>
+                        );
+                    })}
                     {service.applicants.length === 0 && <p className="text-gray-400 text-xs italic">신청자가 없습니다.</p>}
                 </div>
             </div>

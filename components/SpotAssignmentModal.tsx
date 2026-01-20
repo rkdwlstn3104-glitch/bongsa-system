@@ -99,16 +99,19 @@ const SpotAssignmentModal: React.FC<SpotAssignmentModalProps> = ({ isOpen, onClo
     if (!service) return;
     const { date, time, location, comments } = service;
     const headerInfo = [`"봉사 일시: ${date} ${time}"`, `"장소: ${location}"`, ""].join('\n');
-    const padCell = (text: string) => `"${text.padEnd(20)}"`;
-    const tableHeader = ["조", ...SPOTS].map(padCell).join(',');
+    const quoteCell = (text: string) => `"${text.trim()}"`;
+    const tableHeader = ["조", ...SPOTS].map(quoteCell).join(',');
     const rows = GROUPS.map(group => {
       const rowData = SPOTS.map(spot => {
         const key = `${spot}-${group}`;
         const people = localAssignments[key] || [];
-        const names = people.map(p => p.name).join('  ');
-        return padCell(names);
+        const names = people.map(p => {
+            const isOnlyDoorToDoor = !p.canDoPublicWitnessing && (service.type === '호별' || service.type === '전시대&호별');
+            return p.name + (isOnlyDoorToDoor ? '(호)' : '');
+        }).join(' ');
+        return quoteCell(names);
       });
-      return [padCell(group), ...rowData].join(',');
+      return [quoteCell(group), ...rowData].join(',');
     });
     let commentSection = "";
     if (comments && comments.length > 0) {
@@ -156,20 +159,23 @@ const SpotAssignmentModal: React.FC<SpotAssignmentModalProps> = ({ isOpen, onClo
                 </div>
             </div>
             <div className="flex-grow overflow-y-auto p-2 sm:p-4 flex flex-wrap gap-2 sm:gap-3 content-start">
-              {unassignedApplicants.map(v => (
-                <div
-                  key={v.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, v)}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl border-2 shadow-sm cursor-grab active:cursor-grabbing font-black transition-all text-sm sm:text-base select-none ${
-                      v.gender === '자매' 
-                        ? 'bg-pink-100 border-pink-200 text-pink-800' 
-                        : 'bg-blue-100 border-blue-200 text-blue-800'
-                  }`}
-                >
-                  {v.name}
-                </div>
-              ))}
+              {unassignedApplicants.map(v => {
+                const isOnlyDoorToDoor = !v.canDoPublicWitnessing && (service.type === '호별' || service.type === '전시대&호별');
+                return (
+                  <div
+                    key={v.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, v)}
+                    className={`px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl border-2 shadow-sm cursor-grab active:cursor-grabbing font-black transition-all text-sm sm:text-base select-none ${
+                        v.gender === '자매' 
+                          ? 'bg-pink-100 border-pink-200 text-pink-800' 
+                          : 'bg-blue-100 border-blue-200 text-blue-800'
+                    }`}
+                  >
+                    {v.name}{isOnlyDoorToDoor ? '(호)' : ''}
+                  </div>
+                );
+              })}
               {unassignedApplicants.length === 0 && (
                 <div className="w-full text-center py-4 text-gray-400 text-xs italic font-medium">배정 완료</div>
               )}
@@ -208,24 +214,27 @@ const SpotAssignmentModal: React.FC<SpotAssignmentModalProps> = ({ isOpen, onClo
                             style={{ height: 'auto', minHeight: '100px' }}
                           >
                             <div className="w-full min-h-[80px] flex flex-col justify-start items-center gap-1 sm:gap-2 pt-1">
-                              {assignedPeople.map(p => (
-                                <div 
-                                  key={p.id}
-                                  draggable
-                                  onDragStart={(e) => handleDragStart(e, p, cellKey)}
-                                  className={`w-full max-w-[110px] py-1.5 sm:py-2.5 rounded-md sm:rounded-lg border-[1.5px] shadow-sm cursor-grab active:cursor-grabbing flex items-center justify-between px-1 sm:px-2 gap-1 transition-all ${
-                                      p.gender === '자매' ? 'bg-pink-50 border-pink-200 text-pink-900' : 'bg-blue-50 border-blue-200 text-blue-900'
-                                  }`}
-                                >
-                                  <span className="text-xs sm:text-sm truncate">{p.name}</span>
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); handleRemoveFromCell(cellKey, p.id); }}
-                                    className="text-gray-400 hover:text-red-600"
+                              {assignedPeople.map(p => {
+                                const isOnlyDoorToDoor = !p.canDoPublicWitnessing && (service.type === '호별' || service.type === '전시대&호별');
+                                return (
+                                  <div 
+                                    key={p.id}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, p, cellKey)}
+                                    className={`w-full max-w-[110px] py-1.5 sm:py-2.5 rounded-md sm:rounded-lg border-[1.5px] shadow-sm cursor-grab active:cursor-grabbing flex items-center justify-between px-1 sm:px-2 gap-1 transition-all ${
+                                        p.gender === '자매' ? 'bg-pink-50 border-pink-200 text-pink-900' : 'bg-blue-50 border-blue-200 text-blue-900'
+                                    }`}
                                   >
-                                    <CloseIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                                  </button>
-                                </div>
-                              ))}
+                                    <span className="text-xs sm:text-sm truncate">{p.name}{isOnlyDoorToDoor ? '(호)' : ''}</span>
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); handleRemoveFromCell(cellKey, p.id); }}
+                                      className="text-gray-400 hover:text-red-600"
+                                    >
+                                      <CloseIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                                    </button>
+                                  </div>
+                                );
+                              })}
                               {assignedPeople.length === 0 && (
                                 <div className="h-10 sm:h-20 w-full border border-dashed border-gray-100 rounded-lg"></div>
                               )}
