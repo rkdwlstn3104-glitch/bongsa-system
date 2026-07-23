@@ -12,6 +12,7 @@ import Login from './components/Login';
 import { 
   fetchData, 
   addVolunteer, 
+  updateVolunteer,
   removeVolunteer, 
   saveSchedule, 
   removeSchedule, 
@@ -131,16 +132,45 @@ export default function App() {
     return serviceInstances.filter(instance => instance.date === dateString).sort((a,b) => a.time.localeCompare(b.time));
   }, [selectedDate, serviceInstances]);
 
-  const handleAddVolunteer = async (name: string, gender: Gender, canDoPublicWitnessing: boolean) => {
+  const handleAddVolunteer = async (name: string, gender: Gender, isHouseToHouseOnly: boolean, canDoConvenienceStore: boolean) => {
     const tempId = `temp_${Date.now()}`;
-    const newVolunteer: Volunteer = { id: tempId, name, gender, canDoPublicWitnessing };
+    const newVolunteer: Volunteer = { id: tempId, name, gender, isHouseToHouseOnly, canDoConvenienceStore };
     setVolunteers(prev => [...prev, newVolunteer]);
     try {
-        const savedVolunteer = await addVolunteer({ name, gender, canDoPublicWitnessing });
-        setVolunteers(prev => prev.map(v => v.id === tempId ? savedVolunteer : v));
-    } catch (e) {
+        const savedVolunteer = await addVolunteer({ name, gender, isHouseToHouseOnly, canDoConvenienceStore });
+        if (savedVolunteer) {
+            setVolunteers(prev => prev.map(v => v.id === tempId ? savedVolunteer : v));
+        } else {
+            loadData(true);
+        }
+    } catch (e: any) {
+        console.error("전도인 추가 실패:", e);
         setVolunteers(prev => prev.filter(v => v.id !== tempId));
-        alert("전도인 추가에 실패했습니다.");
+        alert(`전도인 추가에 실패했습니다.\n${e.message || '알 수 없는 오류가 발생했습니다.'}`);
+    }
+  };
+
+  const handleUpdateVolunteer = async (updatedVolunteer: Volunteer) => {
+    const originalVolunteers = [...volunteers];
+    // Create a sanitized version of the volunteer to send to the server
+    const volunteerToSave: Volunteer = {
+      id: String(updatedVolunteer.id),
+      name: updatedVolunteer.name,
+      gender: updatedVolunteer.gender,
+      isHouseToHouseOnly: !!updatedVolunteer.isHouseToHouseOnly,
+      canDoConvenienceStore: !!updatedVolunteer.canDoConvenienceStore,
+    };
+    
+    setVolunteers(prev => prev.map(v => v.id === updatedVolunteer.id ? volunteerToSave : v));
+    try {
+        const savedVolunteer = await updateVolunteer(volunteerToSave);
+        if (savedVolunteer) {
+            setVolunteers(prev => prev.map(v => v.id === updatedVolunteer.id ? savedVolunteer : v));
+        }
+    } catch (e: any) {
+        console.error("전도인 정보 수정 실패:", e);
+        setVolunteers(originalVolunteers);
+        alert(`전도인 정보 수정에 실패했습니다.\n${e.message || '알 수 없는 오류가 발생했습니다.'}`);
     }
   };
 
@@ -453,6 +483,7 @@ export default function App() {
           onClose={() => setIsVolunteerModalOpen(false)}
           volunteers={volunteers}
           onAddVolunteer={handleAddVolunteer}
+          onUpdateVolunteer={handleUpdateVolunteer}
           onRemoveVolunteer={handleRemoveVolunteer}
         />
       )}

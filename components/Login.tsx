@@ -52,7 +52,8 @@ const Login: React.FC<LoginProps> = ({ volunteers, onLogin, leaderPassword }) =>
         id: 'leader_user_account',
         name: '봉사인도자',
         gender: '형제',
-        canDoPublicWitnessing: true,
+        isHouseToHouseOnly: false,
+        canDoConvenienceStore: true,
       };
       onLogin(leaderUser, UserRole.Leader);
     } else {

@@ -20,7 +20,8 @@ async function apiRequest(action: string, payload?: any) {
     const result = await response.json();
 
     if (!result.success) {
-      throw new Error(result.message || 'API 내부 오류가 발생했습니다.');
+      console.error(`API Error Response [${action}]:`, result);
+      throw new Error(result.message || `API 내부 오류가 발생했습니다. (${action})`);
     }
 
     return result.data;
@@ -45,6 +46,10 @@ export const updateLeaderPassword = async (newPassword: string): Promise<void> =
 
 export const addVolunteer = async (volunteer: Omit<Volunteer, 'id'>): Promise<Volunteer> => {
     return await apiRequest('addVolunteer', volunteer);
+};
+
+export const updateVolunteer = async (volunteer: Volunteer): Promise<Volunteer> => {
+    return await apiRequest('updateVolunteer', volunteer);
 };
 
 export const removeVolunteer = async (volunteerId: string): Promise<void> => {

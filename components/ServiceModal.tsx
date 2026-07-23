@@ -127,7 +127,11 @@ const VolunteerServiceCard: React.FC<{
 }> = ({ service, currentUser, onApply, onCancel, onAddComment, onUpdateComment, onDeleteComment }) => {
     
     const isApplied = service.applicants.some(v => v.id === currentUser.id);
-    const canApplyForPublic = service.type === '전시대' ? currentUser.canDoPublicWitnessing : true;
+    const canApply = useMemo(() => {
+        if (service.type === '전시대') return !currentUser.isHouseToHouseOnly;
+        if (service.type === '편의점') return currentUser.canDoConvenienceStore;
+        return true;
+    }, [service.type, currentUser]);
 
     const [year, month, day] = service.date.split('-').map(Number);
     const serviceDate = new Date(year, month - 1, day);
@@ -145,7 +149,10 @@ const VolunteerServiceCard: React.FC<{
                     <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-bold text-lg text-gray-900">{service.time}</h4>
                         <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            service.type === '전시대' ? 'bg-blue-100 text-blue-800' : service.type === '호별' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
+                            service.type === '전시대' ? 'bg-blue-100 text-blue-800' : 
+                            service.type === '호별' ? 'bg-green-100 text-green-800' : 
+                            service.type === '편의점' ? 'bg-orange-100 text-orange-800' :
+                            'bg-purple-100 text-purple-800'
                         }`}>
                             {service.type}
                         </span>
@@ -161,7 +168,7 @@ const VolunteerServiceCard: React.FC<{
                 </h5>
                 <div className="flex flex-wrap gap-1.5">
                     {service.applicants.map(v => {
-                        const isOnlyDoorToDoor = !v.canDoPublicWitnessing && (service.type === '호별' || service.type === '전시대&호별');
+                        const isOnlyDoorToDoor = !!v.isHouseToHouseOnly && (service.type === '호별' || service.type === '전시대&호별');
                         return (
                             <span key={v.id} className={`px-2 py-1 text-xs font-medium rounded-lg border ${
                                 v.gender === '자매' ? 'bg-pink-50 border-pink-100 text-pink-700' : 'bg-blue-50 border-blue-100 text-blue-700'
@@ -185,12 +192,12 @@ const VolunteerServiceCard: React.FC<{
                     ) : (
                         <button 
                             onClick={() => onApply(service.id)} 
-                            disabled={!canApplyForPublic}
+                            disabled={!canApply}
                             className={`px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm transition-all ${
-                                canApplyForPublic ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'
+                                canApply ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'
                             }`}
                         >
-                            {canApplyForPublic ? '봉사 신청' : '신청 불가'}
+                            {canApply ? '봉사 신청' : '신청 불가'}
                         </button>
                     )
                 ) : (

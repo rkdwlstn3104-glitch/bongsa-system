@@ -109,6 +109,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, onSave, onCancel
                 <option value="호별">호별</option>
                 <option value="전시대">전시대</option>
                 <option value="전시대&호별">전시대&호별</option>
+                <option value="편의점">편의점</option>
                 </select>
             </div>
             <div>

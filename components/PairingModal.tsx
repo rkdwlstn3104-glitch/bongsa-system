@@ -114,14 +114,14 @@ const PairingModal: React.FC<PairingModalProps> = ({ isOpen, onClose, service, o
     const header = `"봉사: ${date} ${time} (${location})"\n"종류: ${type}"\n\n${quoteCell("조")},${quoteCell("명단")}\n`;
     const rows = groups.map((g, i) => {
         const names = g.map(v => {
-            const isOnlyDoorToDoor = !v.canDoPublicWitnessing && (type === '호별' || type === '전시대&호별');
+            const isOnlyDoorToDoor = !!v.isHouseToHouseOnly && (type === '호별' || type === '전시대&호별');
             return v.name + (isOnlyDoorToDoor ? '(호)' : '');
         }).join(' ');
         return `${quoteCell((i+1) + "조")},${quoteCell(names)}`;
     }).join('\n');
     
     const unpaired = unpairedVolunteers.length > 0 ? `\n${quoteCell("미지정")},${quoteCell(unpairedVolunteers.map(v => {
-        const isOnlyDoorToDoor = !v.canDoPublicWitnessing && (type === '호별' || type === '전시대&호별');
+        const isOnlyDoorToDoor = !!v.isHouseToHouseOnly && (type === '호별' || type === '전시대&호별');
         return v.name + (isOnlyDoorToDoor ? '(호)' : '');
     }).join(' '))}` : '';
     
@@ -160,7 +160,7 @@ const PairingModal: React.FC<PairingModalProps> = ({ isOpen, onClose, service, o
             </div>
             <div className="flex-grow overflow-y-auto p-2 sm:p-4 flex flex-wrap gap-2 content-start">
               {unpairedVolunteers.map(v => {
-                const isOnlyDoorToDoor = !v.canDoPublicWitnessing && (service.type === '호별' || service.type === '전시대&호별');
+                const isOnlyDoorToDoor = !!v.isHouseToHouseOnly && (service.type === '호별' || service.type === '전시대&호별');
                 return (
                   <div 
                     key={v.id} 
@@ -199,7 +199,7 @@ const PairingModal: React.FC<PairingModalProps> = ({ isOpen, onClose, service, o
                   </div>
                   <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
                     {group.map(v => {
-                      const isOnlyDoorToDoor = !v.canDoPublicWitnessing && (service.type === '호별' || service.type === '전시대&호별');
+                      const isOnlyDoorToDoor = !!v.isHouseToHouseOnly && (service.type === '호별' || service.type === '전시대&호별');
                       return (
                         <div 
                           key={v.id}

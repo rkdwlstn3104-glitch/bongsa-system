@@ -22,6 +22,7 @@ const toYYYYMMDD = (date: Date): string => {
 const getServiceTypeCalendarColor = (type: ServiceType): string => {
     if (type === '전시대') return 'bg-blue-500';
     if (type === '호별') return 'bg-green-500';
+    if (type === '편의점') return 'bg-orange-500';
     return 'bg-purple-500';
 };
 

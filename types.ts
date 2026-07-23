@@ -5,10 +5,11 @@ export interface Volunteer {
   id: string;
   name: string;
   gender: Gender;
-  canDoPublicWitnessing: boolean;
+  isHouseToHouseOnly: boolean;
+  canDoConvenienceStore: boolean;
 }
 
-export type ServiceType = '호별' | '전시대' | '전시대&호별';
+export type ServiceType = '호별' | '전시대' | '전시대&호별' | '편의점';
 
 export interface ServiceSchedule {
   id?: string;

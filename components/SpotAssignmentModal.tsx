@@ -106,7 +106,7 @@ const SpotAssignmentModal: React.FC<SpotAssignmentModalProps> = ({ isOpen, onClo
         const key = `${spot}-${group}`;
         const people = localAssignments[key] || [];
         const names = people.map(p => {
-            const isOnlyDoorToDoor = !p.canDoPublicWitnessing && (service.type === '호별' || service.type === '전시대&호별');
+            const isOnlyDoorToDoor = !!p.isHouseToHouseOnly && (service.type === '호별' || service.type === '전시대&호별');
             return p.name + (isOnlyDoorToDoor ? '(호)' : '');
         }).join(' ');
         return quoteCell(names);
@@ -160,7 +160,7 @@ const SpotAssignmentModal: React.FC<SpotAssignmentModalProps> = ({ isOpen, onClo
             </div>
             <div className="flex-grow overflow-y-auto p-2 sm:p-4 flex flex-wrap gap-2 sm:gap-3 content-start">
               {unassignedApplicants.map(v => {
-                const isOnlyDoorToDoor = !v.canDoPublicWitnessing && (service.type === '호별' || service.type === '전시대&호별');
+                const isOnlyDoorToDoor = !!v.isHouseToHouseOnly && (service.type === '호별' || service.type === '전시대&호별');
                 return (
                   <div
                     key={v.id}
@@ -215,7 +215,7 @@ const SpotAssignmentModal: React.FC<SpotAssignmentModalProps> = ({ isOpen, onClo
                           >
                             <div className="w-full min-h-[80px] flex flex-col justify-start items-center gap-1 sm:gap-2 pt-1">
                               {assignedPeople.map(p => {
-                                const isOnlyDoorToDoor = !p.canDoPublicWitnessing && (service.type === '호별' || service.type === '전시대&호별');
+                                const isOnlyDoorToDoor = !!p.isHouseToHouseOnly && (service.type === '호별' || service.type === '전시대&호별');
                                 return (
                                   <div 
                                     key={p.id}
