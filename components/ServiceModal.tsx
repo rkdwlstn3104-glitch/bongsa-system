@@ -145,13 +145,13 @@ const VolunteerServiceCard: React.FC<{
     return (
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
             <div className="flex justify-between items-start">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
+                <div className="pr-36 sm:pr-40">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h4 className="font-bold text-lg text-gray-900">{service.time}</h4>
                         <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            service.type === '전시대' ? 'bg-blue-100 text-blue-800' : 
-                            service.type === '호별' ? 'bg-green-100 text-green-800' : 
-                            service.type === '편의점' ? 'bg-orange-100 text-orange-800' :
+                            service.type?.includes('전시대') && !service.type?.includes('호별') ? 'bg-blue-100 text-blue-800' : 
+                            service.type?.includes('호별') ? 'bg-green-100 text-green-800' : 
+                            service.type?.includes('편의점') ? 'bg-orange-100 text-orange-800' :
                             'bg-purple-100 text-purple-800'
                         }`}>
                             {service.type}
@@ -295,19 +295,21 @@ const ServiceModal: React.FC<ServiceModalProps> = ({
                   return (
                     <div key={service.id} className="relative">
                       {currentRole === UserRole.Leader && (
-                        <div className="absolute top-4 right-4 flex space-x-1 z-10">
-                            {(service.type === '전시대' || service.type === '전시대&호별') && (
-                                <button onClick={() => setSpotAssignmentServiceId(service.id)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 shadow-sm" title="전시대 조직">
+                        <div className="absolute top-3 right-3 flex space-x-1 z-10 bg-white/90 backdrop-blur-sm p-1 rounded-xl shadow-sm border border-gray-200">
+                            {service.type?.includes('전시대') && (
+                                <button onClick={() => setSpotAssignmentServiceId(service.id)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="전시대 조직">
                                     <MapPinIcon className="h-5 w-5"/>
                                 </button>
                             )}
-                            <button onClick={() => setPairingServiceId(service.id)} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 shadow-sm" title="호별 짝 조직">
-                                <UsersIcon className="h-5 w-5"/>
-                            </button>
-                            <button onClick={() => setEditingId(service.id)} className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 shadow-sm">
+                            {!service.type?.includes('편의점') && (
+                                <button onClick={() => setPairingServiceId(service.id)} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors" title="호별 짝 조직">
+                                    <UsersIcon className="h-5 w-5"/>
+                                </button>
+                            )}
+                            <button onClick={() => setEditingId(service.id)} className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors" title="수정">
                                 <PencilIcon className="h-5 w-5"/>
                             </button>
-                            <button onClick={() => onDeleteService(service.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 shadow-sm">
+                            <button onClick={() => onDeleteService(service.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" title="삭제">
                                 <TrashIcon className="h-5 w-5"/>
                             </button>
                         </div>

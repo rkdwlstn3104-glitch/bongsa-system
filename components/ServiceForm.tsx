@@ -104,13 +104,37 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, onSave, onCancel
                 <input type="text" name="time" value={formData.time} onChange={handleInputChange} placeholder="예: 오후 1:30-4:00" className="mt-1 block w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700">종류</label>
-                <select name="type" value={formData.type} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                <option value="호별">호별</option>
-                <option value="전시대">전시대</option>
-                <option value="전시대&호별">전시대&호별</option>
-                <option value="편의점">편의점</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-1">종류</label>
+                <div className="flex gap-1.5 mb-1.5 flex-wrap">
+                  {['호별', '전시대', '전시대&호별', '편의점'].map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, type: preset }))}
+                      className={`px-2 py-0.5 text-xs rounded-full border transition-all ${
+                        formData.type === preset ? 'bg-blue-600 text-white border-blue-600 font-bold' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                <input 
+                  type="text" 
+                  name="type" 
+                  value={formData.type} 
+                  onChange={handleInputChange} 
+                  placeholder="종류 직접 입력 또는 위에서 선택" 
+                  className="mt-1 block w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                  list="service-type-suggestions"
+                  required 
+                />
+                <datalist id="service-type-suggestions">
+                  <option value="호별" />
+                  <option value="전시대" />
+                  <option value="전시대&호별" />
+                  <option value="편의점" />
+                </datalist>
             </div>
             <div>
                 <label className="block text-sm font-medium text-gray-700">장소</label>

@@ -9,7 +9,7 @@ export interface Volunteer {
   canDoConvenienceStore: boolean;
 }
 
-export type ServiceType = '호별' | '전시대' | '전시대&호별' | '편의점';
+export type ServiceType = '호별' | '전시대' | '전시대&호별' | '편의점' | (string & {});
 
 export interface ServiceSchedule {
   id?: string;
